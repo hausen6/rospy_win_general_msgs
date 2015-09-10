@@ -23,15 +23,15 @@ class ImageView(object):
     image_topic_name: str,
         受信する画像のトピック名
     """
-    def __init__(self, image_topic_name=None):
+    def __init__(self, image_topic_name):
         # importできたモジュールに応じてコールバック関数を変える
         if _cv_imported:
             image_callback_func = self.imageCBbyCv
         else:
             image_callback_func = self.imageCBbyMatplotlib
-        self.sub = rospy.Subscriber("hsrb/head_rgbd_sensor/rgb/image_color",
-                                     Image,
-                                     image_callback_func)
+        self.sub = rospy.Subscriber(image_topic_name,
+                                    Image,
+                                    image_callback_func)
 
     def imageCBbyCv(self, msg):
         # 受信データをnumpy-arrayに変換
@@ -57,9 +57,38 @@ class ImageView(object):
 
 
 if __name__ == "__main__":
-    os.environ["ROS_MASTER_URI"] = "http://192.168.1.70:11311"
-    os.environ["ROS_IP"] = "192.168.1.130"
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+
+    parser.add_argument("topic_name",
+                        type=str,
+                        help="受信する画像のトピック名")
+
+    # 環境変数(rosのip周りの設定をチェック)
+    ros_master = False
+    ros_ip = False
+    if "ROS_MASTER_URI" in os.environ:
+        ros_master = True
+    if "ROS_IP" in os.environ:
+        ros_ip = True
+    # 環境変数がセットされていない場合は引数から設定
+    if not ros_master:
+        parser.add_argument("ros_master_uri",
+                            type=str,
+                            help="ROS_MASTER_URI (接続先IP)")
+    if not ros_ip:
+        parser.add_argument("ros_ip",
+                            type=str,
+                            help="ROS_IP (自分のIP)")
+
+    args = parser.parse_args()
+
+    # 環境変数に値をセット
+    if not ros_master:
+        os.environ["ROS_MASTER_URI"] = args.ros_master_uri
+    if not ros_ip:
+        os.environ["ROS_IP"] = args.ros_ip
 
     rospy.init_node("joe_image_view")
-    view = ImageView()
+    view = ImageView(args.topic_name)
     rospy.spin()
