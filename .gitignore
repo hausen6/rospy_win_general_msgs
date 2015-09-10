@@ -1,1 +1,9 @@
+# pythonのbinaryは無視
 *.pyc
+
+# モジュールインストール時に生成されるものも無視
+build/
+build/*
+dist/
+dist/*
+**/*/*.egg-info
